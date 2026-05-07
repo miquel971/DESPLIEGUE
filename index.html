@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Quiz DAW - Despliegue</title>
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
+
   <div class="contenedor">
+
     <h1>Quiz de Despliegue de Aplicaciones Web</h1>
 
     <div class="quiz activo" id="panelQuiz">
+
       <div class="info">
+
         <div class="dato">
           <strong>Unidad:</strong><br>
           <span id="infoUnidad"></span>
@@ -29,9 +36,15 @@
         </div>
 
         <div class="dato">
-          <strong>Total:</strong><br>
-          <span id="infoTotal"></span>
+          <strong>Total test:</strong><br>
+          <span id="infoTotal">30</span>
         </div>
+
+        <div class="dato">
+          <strong>Banco total:</strong><br>
+          <span id="infoBanco"></span>
+        </div>
+
       </div>
 
       <div class="pregunta" id="textoPregunta"></div>
@@ -39,9 +52,11 @@
       <div class="respuestas" id="cajaRespuestas"></div>
 
       <div class="mensaje" id="mensaje"></div>
+
     </div>
 
     <div class="resultado" id="panelResultado">
+
       <h2>Resultado final</h2>
 
       <p>
@@ -67,9 +82,13 @@
       <button type="button" id="btnVolver">
         Reiniciar test
       </button>
+
     </div>
+
   </div>
 
   <script src="script.js"></script>
+
 </body>
+
 </html>
