@@ -803,7 +803,6 @@ const btnVolver = document.getElementById("btnVolver");
 const TOTAL_PREGUNTAS_TEST = 30;
 
 let quizActual = [];
-let indicePregunta = 0;
 let aciertos = 0;
 let respondidas = 0;
 let ultimaPosicionCorrecta = -1;
@@ -819,17 +818,23 @@ function mezclarArray(array) {
   return copia;
 }
 
+function obtenerTotalBanco() {
+  return unidades.reduce((total, unidad) => {
+    return total + unidad.preguntas.length;
+  }, 0);
+}
+
 function seleccionarPreguntasDelTest() {
   const todasLasPreguntas = [];
 
-  for (const unidad of unidades) {
-    const preguntasUnidad = unidad.preguntas.map((pregunta) => ({
-      ...pregunta,
-      unidadNombre: unidad.nombre
-    }));
-
-    todasLasPreguntas.push(...preguntasUnidad);
-  }
+  unidades.forEach((unidad) => {
+    unidad.preguntas.forEach((pregunta) => {
+      todasLasPreguntas.push({
+        ...pregunta,
+        unidadNombre: unidad.nombre
+      });
+    });
+  });
 
   return mezclarArray(todasLasPreguntas).slice(0, TOTAL_PREGUNTAS_TEST);
 }
@@ -846,15 +851,8 @@ function generarOpcionesSinRepetirPosicion(pregunta) {
 
   do {
     opcionesMezcladas = mezclarArray(respuestasBase);
-
-    posicionCorrecta = opcionesMezcladas.findIndex(
-      (opcion) => opcion.esCorrecta
-    );
-
-  } while (
-    opcionesMezcladas.length > 1 &&
-    posicionCorrecta === ultimaPosicionCorrecta
-  );
+    posicionCorrecta = opcionesMezcladas.findIndex(opcion => opcion.esCorrecta);
+  } while (posicionCorrecta === ultimaPosicionCorrecta);
 
   ultimaPosicionCorrecta = posicionCorrecta;
 
@@ -877,7 +875,6 @@ function mostrarPanel(nombre) {
 function empezarQuiz() {
   quizActual = seleccionarPreguntasDelTest();
 
-  indicePregunta = 0;
   aciertos = 0;
   respondidas = 0;
   ultimaPosicionCorrecta = -1;
@@ -886,53 +883,39 @@ function empezarQuiz() {
   mensaje.className = "mensaje";
 
   mostrarPanel("quiz");
-
   renderizarPregunta();
 }
 
 function renderizarPregunta() {
-
-  if (quizActual.length === 0 || respondidas >= TOTAL_PREGUNTAS_TEST) {
+  if (respondidas >= TOTAL_PREGUNTAS_TEST || quizActual.length === 0) {
     mostrarResultado();
     return;
   }
 
-  const preguntaActual = quizActual[indicePregunta];
-
+  const preguntaActual = quizActual[0];
   const opciones = generarOpcionesSinRepetirPosicion(preguntaActual);
 
-  const totalBanco = unidades.reduce((total, unidad) => {
-    return total + unidad.preguntas.length;
-  }, 0);
-
   infoUnidad.textContent = preguntaActual.unidadNombre;
-
-  infoPregunta.textContent =
-    `Pregunta ${respondidas + 1} / ${TOTAL_PREGUNTAS_TEST}`;
-
+  infoPregunta.textContent = `Pregunta ${respondidas + 1} / ${TOTAL_PREGUNTAS_TEST}`;
   infoAciertos.textContent = aciertos;
-
   infoTotal.textContent = TOTAL_PREGUNTAS_TEST;
 
-  infoBanco.textContent = totalBanco;
+  if (infoBanco) {
+    infoBanco.textContent = obtenerTotalBanco();
+  }
 
   textoPregunta.textContent = preguntaActual.texto;
 
   cajaRespuestas.innerHTML = "";
-
   mensaje.textContent = "";
   mensaje.className = "mensaje";
 
   opciones.forEach((opcion) => {
-
     const boton = document.createElement("button");
 
     boton.type = "button";
-
     boton.className = "respuesta";
-
     boton.textContent = opcion.texto;
-
     boton.dataset.correcta = opcion.esCorrecta ? "si" : "no";
 
     boton.addEventListener("click", () => {
@@ -940,12 +923,10 @@ function renderizarPregunta() {
     });
 
     cajaRespuestas.appendChild(boton);
-
   });
 }
 
 function comprobarRespuesta(botonPulsado, esCorrecta) {
-
   const botones = cajaRespuestas.querySelectorAll("button");
 
   botones.forEach((boton) => {
@@ -953,73 +934,45 @@ function comprobarRespuesta(botonPulsado, esCorrecta) {
   });
 
   if (esCorrecta) {
-
     aciertos++;
-
     botonPulsado.classList.add("correcta");
-
     mensaje.textContent = "Correcta.";
-
     mensaje.className = "mensaje ok";
-
   } else {
-
     botonPulsado.classList.add("incorrecta");
 
     let respuestaCorrectaTexto = "";
 
     botones.forEach((boton) => {
-
       if (boton.dataset.correcta === "si") {
-
         boton.classList.add("correcta");
-
         respuestaCorrectaTexto = boton.textContent;
-
       }
-
     });
 
-    mensaje.textContent =
-      `Incorrecta. La correcta es: ${respuestaCorrectaTexto}`;
-
+    mensaje.textContent = `Incorrecta. La correcta es: ${respuestaCorrectaTexto}`;
     mensaje.className = "mensaje error";
   }
 
   respondidas++;
-
-  quizActual.splice(indicePregunta, 1);
-
-  if (quizActual.length === 0 || respondidas >= TOTAL_PREGUNTAS_TEST) {
-
-    setTimeout(() => {
-      mostrarResultado();
-    }, 1000);
-
-    return;
-  }
-
-  if (indicePregunta >= quizActual.length) {
-    indicePregunta = 0;
-  }
+  quizActual.shift();
 
   setTimeout(() => {
-    renderizarPregunta();
+    if (respondidas >= TOTAL_PREGUNTAS_TEST || quizActual.length === 0) {
+      mostrarResultado();
+    } else {
+      renderizarPregunta();
+    }
   }, 1000);
 }
 
 function mostrarResultado() {
-
   const total = TOTAL_PREGUNTAS_TEST;
-
   const nota = ((aciertos / total) * 10).toFixed(2);
 
   resultadoUnidad.textContent = "Test completado";
-
   resultadoAciertos.textContent = aciertos;
-
   resultadoTotal.textContent = total;
-
   resultadoNota.textContent = nota;
 
   mostrarPanel("resultado");
