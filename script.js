@@ -801,8 +801,10 @@ const resultadoAciertos = document.getElementById("resultadoAciertos");
 const resultadoTotal = document.getElementById("resultadoTotal");
 const resultadoNota = document.getElementById("resultadoNota");
 
-const PREGUNTAS_POR_UF = 6;
-const TOTAL_PREGUNTAS_TEST = PREGUNTAS_POR_UF * unidades.length;
+const TOTAL_PREGUNTAS_TEST = unidades.reduce(
+  (total, unidad) => total + unidad.preguntas.length,
+  0
+);
 
 let quizActual = [];
 let indicePregunta = 0;
@@ -824,14 +826,12 @@ function seleccionarPreguntasDelTest() {
   const seleccionadas = [];
 
   for (const unidad of unidades) {
-    const preguntasMezcladasUF = mezclarArray(unidad.preguntas);
-
-    const bloqueUF = preguntasMezcladasUF.slice(0, PREGUNTAS_POR_UF).map((pregunta) => ({
+    const preguntasUnidad = unidad.preguntas.map((pregunta) => ({
       ...pregunta,
       unidadNombre: unidad.nombre
     }));
 
-    seleccionadas.push(...bloqueUF);
+    seleccionadas.push(...preguntasUnidad);
   }
 
   return mezclarArray(seleccionadas);
@@ -849,10 +849,15 @@ function generarOpcionesSinRepetirPosicion(pregunta) {
 
   do {
     opcionesMezcladas = mezclarArray(respuestasBase);
-    posicionCorrecta = opcionesMezcladas.findIndex((opcion) => opcion.esCorrecta);
+
+    posicionCorrecta = opcionesMezcladas.findIndex(
+      (opcion) => opcion.esCorrecta
+    );
+
   } while (posicionCorrecta === ultimaPosicionCorrecta);
 
   ultimaPosicionCorrecta = posicionCorrecta;
+
   return opcionesMezcladas;
 }
 
@@ -861,13 +866,22 @@ function mostrarPanel(nombre) {
   panelQuiz.classList.remove("activo");
   panelResultado.classList.remove("activo");
 
-  if (nombre === "inicio") panelInicio.classList.add("activo");
-  if (nombre === "quiz") panelQuiz.classList.add("activo");
-  if (nombre === "resultado") panelResultado.classList.add("activo");
+  if (nombre === "inicio") {
+    panelInicio.classList.add("activo");
+  }
+
+  if (nombre === "quiz") {
+    panelQuiz.classList.add("activo");
+  }
+
+  if (nombre === "resultado") {
+    panelResultado.classList.add("activo");
+  }
 }
 
 function empezarQuiz() {
   quizActual = seleccionarPreguntasDelTest();
+
   indicePregunta = 0;
   aciertos = 0;
   ultimaPosicionCorrecta = -1;
@@ -876,29 +890,49 @@ function empezarQuiz() {
   mensaje.className = "mensaje";
 
   mostrarPanel("quiz");
+
   renderizarPregunta();
 }
 
 function renderizarPregunta() {
+
+  if (quizActual.length === 0) {
+    mostrarResultado();
+    return;
+  }
+
   const preguntaActual = quizActual[indicePregunta];
-  const opciones = generarOpcionesSinRepetirPosicion(preguntaActual);
+
+  const opciones = generarOpcionesSinRepetirPosicion(
+    preguntaActual
+  );
 
   infoUnidad.textContent = preguntaActual.unidadNombre;
-  infoPregunta.textContent = `${indicePregunta + 1} / ${TOTAL_PREGUNTAS_TEST}`;
+
+  infoPregunta.textContent =
+    `Quedan: ${quizActual.length}`;
+
   infoAciertos.textContent = aciertos;
+
   infoTotal.textContent = TOTAL_PREGUNTAS_TEST;
 
   textoPregunta.textContent = preguntaActual.texto;
+
   cajaRespuestas.innerHTML = "";
 
   mensaje.textContent = "";
   mensaje.className = "mensaje";
 
   opciones.forEach((opcion) => {
+
     const boton = document.createElement("button");
+
     boton.className = "respuesta";
+
     boton.textContent = opcion.texto;
-    boton.dataset.correcta = opcion.esCorrecta ? "si" : "no";
+
+    boton.dataset.correcta =
+      opcion.esCorrecta ? "si" : "no";
 
     boton.addEventListener("click", () => {
       comprobarRespuesta(boton, opcion.esCorrecta);
@@ -909,55 +943,97 @@ function renderizarPregunta() {
 }
 
 function comprobarRespuesta(botonPulsado, esCorrecta) {
-  const botones = cajaRespuestas.querySelectorAll("button");
+
+  const botones =
+    cajaRespuestas.querySelectorAll("button");
 
   botones.forEach((boton) => {
     boton.disabled = true;
   });
 
+  const preguntaActual = quizActual[indicePregunta];
+
   if (esCorrecta) {
+
     aciertos++;
+
     botonPulsado.classList.add("correcta");
+
     mensaje.textContent = "Correcta.";
+
     mensaje.className = "mensaje ok";
+
+    quizActual.splice(indicePregunta, 1);
+
   } else {
+
     botonPulsado.classList.add("incorrecta");
 
+    let respuestaCorrectaTexto = "";
+
     botones.forEach((boton) => {
+
       if (boton.dataset.correcta === "si") {
+
         boton.classList.add("correcta");
+
+        respuestaCorrectaTexto =
+          boton.textContent;
       }
     });
 
-    mensaje.textContent = "Incorrecta.";
+    mensaje.textContent =
+      `Incorrecta. La correcta es: ${respuestaCorrectaTexto}`;
+
     mensaje.className = "mensaje error";
+
+    const preguntaFallada =
+      quizActual.splice(indicePregunta, 1)[0];
+
+    quizActual.push(preguntaFallada);
   }
 
-  if (indicePregunta === quizActual.length - 1) {
+  if (quizActual.length === 0) {
+
     setTimeout(() => {
       mostrarResultado();
-    }, 1000);
+    }, 1800);
+
   } else {
-    indicePregunta++;
+
+    if (indicePregunta >= quizActual.length) {
+      indicePregunta = 0;
+    }
+
     setTimeout(() => {
       renderizarPregunta();
-    }, 1000);
+    }, 1200);
   }
 }
 
 function mostrarResultado() {
-  const total = quizActual.length;
-  const nota = ((aciertos / total) * 10).toFixed(2);
 
-  resultadoUnidad.textContent = "Test mixto de 30 preguntas";
+  const total = TOTAL_PREGUNTAS_TEST;
+
+  const nota =
+    ((aciertos / total) * 10).toFixed(2);
+
+  resultadoUnidad.textContent =
+    "Test completado";
+
   resultadoAciertos.textContent = aciertos;
+
   resultadoTotal.textContent = total;
+
   resultadoNota.textContent = nota;
 
   mostrarPanel("resultado");
 }
 
-btnEmpezar.addEventListener("click", empezarQuiz);
+btnEmpezar.addEventListener(
+  "click",
+  empezarQuiz
+);
 
 btnVolver.addEventListener("click", () => {
   mostrarPanel("inicio");
