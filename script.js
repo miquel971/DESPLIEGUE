@@ -834,7 +834,7 @@ function seleccionarPreguntasDelTest() {
     seleccionadas.push(...preguntasUnidad);
   }
 
-  return mezclarArray(seleccionadas);
+  return mezclarArray(seleccionadas).slice(0, 30);
 }
 
 function generarOpcionesSinRepetirPosicion(pregunta) {
