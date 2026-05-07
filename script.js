@@ -801,14 +801,12 @@ const resultadoAciertos = document.getElementById("resultadoAciertos");
 const resultadoTotal = document.getElementById("resultadoTotal");
 const resultadoNota = document.getElementById("resultadoNota");
 
-const TOTAL_PREGUNTAS_TEST = unidades.reduce(
-  (total, unidad) => total + unidad.preguntas.length,
-  0
-);
+const TOTAL_PREGUNTAS_TEST = 30;
 
 let quizActual = [];
 let indicePregunta = 0;
 let aciertos = 0;
+let respondidas = 0;
 let ultimaPosicionCorrecta = -1;
 
 function mezclarArray(array) {
@@ -834,7 +832,7 @@ function seleccionarPreguntasDelTest() {
     seleccionadas.push(...preguntasUnidad);
   }
 
-  return mezclarArray(seleccionadas).slice(0, 30);
+  return mezclarArray(seleccionadas).slice(0, TOTAL_PREGUNTAS_TEST);
 }
 
 function generarOpcionesSinRepetirPosicion(pregunta) {
@@ -853,7 +851,6 @@ function generarOpcionesSinRepetirPosicion(pregunta) {
     posicionCorrecta = opcionesMezcladas.findIndex(
       (opcion) => opcion.esCorrecta
     );
-
   } while (posicionCorrecta === ultimaPosicionCorrecta);
 
   ultimaPosicionCorrecta = posicionCorrecta;
@@ -884,6 +881,7 @@ function empezarQuiz() {
 
   indicePregunta = 0;
   aciertos = 0;
+  respondidas = 0;
   ultimaPosicionCorrecta = -1;
 
   mensaje.textContent = "";
@@ -895,22 +893,19 @@ function empezarQuiz() {
 }
 
 function renderizarPregunta() {
-
-  if (quizActual.length === 0) {
+  if (quizActual.length === 0 || respondidas >= TOTAL_PREGUNTAS_TEST) {
     mostrarResultado();
     return;
   }
 
   const preguntaActual = quizActual[indicePregunta];
 
-  const opciones = generarOpcionesSinRepetirPosicion(
-    preguntaActual
-  );
+  const opciones = generarOpcionesSinRepetirPosicion(preguntaActual);
 
   infoUnidad.textContent = preguntaActual.unidadNombre;
 
   infoPregunta.textContent =
-    `Quedan: ${quizActual.length}`;
+    `Pregunta ${respondidas + 1} / ${TOTAL_PREGUNTAS_TEST}`;
 
   infoAciertos.textContent = aciertos;
 
@@ -924,15 +919,13 @@ function renderizarPregunta() {
   mensaje.className = "mensaje";
 
   opciones.forEach((opcion) => {
-
     const boton = document.createElement("button");
 
     boton.className = "respuesta";
 
     boton.textContent = opcion.texto;
 
-    boton.dataset.correcta =
-      opcion.esCorrecta ? "si" : "no";
+    boton.dataset.correcta = opcion.esCorrecta ? "si" : "no";
 
     boton.addEventListener("click", () => {
       comprobarRespuesta(boton, opcion.esCorrecta);
@@ -943,18 +936,13 @@ function renderizarPregunta() {
 }
 
 function comprobarRespuesta(botonPulsado, esCorrecta) {
-
-  const botones =
-    cajaRespuestas.querySelectorAll("button");
+  const botones = cajaRespuestas.querySelectorAll("button");
 
   botones.forEach((boton) => {
     boton.disabled = true;
   });
 
-  const preguntaActual = quizActual[indicePregunta];
-
   if (esCorrecta) {
-
     aciertos++;
 
     botonPulsado.classList.add("correcta");
@@ -962,23 +950,16 @@ function comprobarRespuesta(botonPulsado, esCorrecta) {
     mensaje.textContent = "Correcta.";
 
     mensaje.className = "mensaje ok";
-
-    quizActual.splice(indicePregunta, 1);
-
   } else {
-
     botonPulsado.classList.add("incorrecta");
 
     let respuestaCorrectaTexto = "";
 
     botones.forEach((boton) => {
-
       if (boton.dataset.correcta === "si") {
-
         boton.classList.add("correcta");
 
-        respuestaCorrectaTexto =
-          boton.textContent;
+        respuestaCorrectaTexto = boton.textContent;
       }
     });
 
@@ -986,40 +967,35 @@ function comprobarRespuesta(botonPulsado, esCorrecta) {
       `Incorrecta. La correcta es: ${respuestaCorrectaTexto}`;
 
     mensaje.className = "mensaje error";
-
-    const preguntaFallada =
-      quizActual.splice(indicePregunta, 1)[0];
-
-    quizActual.push(preguntaFallada);
   }
 
-  if (quizActual.length === 0) {
+  respondidas++;
 
+  quizActual.splice(indicePregunta, 1);
+
+  if (quizActual.length === 0 || respondidas >= TOTAL_PREGUNTAS_TEST) {
     setTimeout(() => {
       mostrarResultado();
-    }, 1800);
+    }, 1000);
 
-  } else {
-
-    if (indicePregunta >= quizActual.length) {
-      indicePregunta = 0;
-    }
-
-    setTimeout(() => {
-      renderizarPregunta();
-    }, 1200);
+    return;
   }
+
+  if (indicePregunta >= quizActual.length) {
+    indicePregunta = 0;
+  }
+
+  setTimeout(() => {
+    renderizarPregunta();
+  }, 1000);
 }
 
 function mostrarResultado() {
-
   const total = TOTAL_PREGUNTAS_TEST;
 
-  const nota =
-    ((aciertos / total) * 10).toFixed(2);
+  const nota = ((aciertos / total) * 10).toFixed(2);
 
-  resultadoUnidad.textContent =
-    "Test completado";
+  resultadoUnidad.textContent = "Test completado";
 
   resultadoAciertos.textContent = aciertos;
 
@@ -1030,10 +1006,7 @@ function mostrarResultado() {
   mostrarPanel("resultado");
 }
 
-btnEmpezar.addEventListener(
-  "click",
-  empezarQuiz
-);
+btnEmpezar.addEventListener("click", empezarQuiz);
 
 btnVolver.addEventListener("click", () => {
   mostrarPanel("inicio");
